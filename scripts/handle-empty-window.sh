@@ -16,8 +16,8 @@ win_id=$(tmux display-message -p '#{window_id}' 2>/dev/null)
 win_count=$(tmux list-windows -F '#{window_id}' 2>/dev/null | wc -l | tr -d ' ')
 
 if [ "$win_count" -gt 1 ]; then
-    # Other windows exist — switch away and kill this empty one
-    tmux select-window -t :+ 2>/dev/null
+    # Other windows exist — prefer previous window, fall back to next
+    tmux select-window -t :- 2>/dev/null || tmux select-window -t :+ 2>/dev/null
     tmux kill-window -t "$win_id" 2>/dev/null
 else
     # Last window — create a new pane beside the sidebar

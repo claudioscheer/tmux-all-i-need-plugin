@@ -28,7 +28,7 @@ tmux set -g mouse on
 tmux set -g status-right '#[fg=cyan,range=sessions]  ≡  #[norange]#[fg=green,bold,range=newwin]  +  #[norange,default] %H:%M %d-%b-%y'
 tmux bind -n MouseDown1StatusRight if-shell -F '#{==:#{mouse_status_range},sessions}' \
     'choose-tree -Zs' \
-    'if-shell -F "#{==:#{mouse_status_range},newwin}" "new-window"'
+    'if-shell -F "#{==:#{mouse_status_range},newwin}" "new-window -a -t :{end}"'
 tmux set -g window-status-format ''
 tmux set -g window-status-current-format ''
 tmux set -g window-status-separator ''
@@ -53,6 +53,11 @@ done
 
 # Detect when all non-sidebar panes are closed (index [97])
 tmux set-hook -g "window-layout-changed[97]" "run-shell -b '$SCRIPTS_DIR/handle-empty-window.sh'"
+
+# Refresh sidebar display on state changes (index [96])
+for hook in after-new-window client-session-changed session-window-changed session-created session-closed window-linked window-unlinked; do
+    tmux set-hook -g "${hook}[96]" "run-shell -b '$SCRIPTS_DIR/sidebar-refresh.sh'"
+done
 
 # Periodic save every 15 seconds (background loop)
 if [ "$(tmux show-option -gqv @tain-periodic-running)" != "1" ]; then

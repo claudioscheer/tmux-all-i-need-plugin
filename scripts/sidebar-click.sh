@@ -29,7 +29,7 @@ case "$ttype" in
         tmux select-window -t "=$target" 2>/dev/null
         ;;
     new-window)
-        tmux new-window 2>/dev/null
+        tmux new-window -a -t :{end} 2>/dev/null
         ;;
 esac
 

@@ -9,7 +9,6 @@ MY_PANE="$TMUX_PANE"
 cd / 2>/dev/null
 
 cleanup() {
-    tmux set-option -pu -t "$MY_PANE" @tain-sidebar 2>/dev/null
     rm -f "/tmp/tain-targets-${MY_PANE}" 2>/dev/null
 }
 trap cleanup EXIT
@@ -65,8 +64,8 @@ render() {
     printf '%s' "$targets_data" > "/tmp/tain-targets-${MY_PANE}"
 }
 
-# Render loop — only renders, lifecycle handled by tmux hooks
-while true; do
-    render
-    sleep 1
-done
+# One-shot render — tmux hooks call respawn-pane to refresh
+render
+
+# Block until killed by respawn-pane
+tail -f /dev/null
