@@ -21,9 +21,24 @@ if [ -n "$server_start" ] && [ $((now - server_start)) -lt 10 ]; then
     fi
 fi
 
+# Add clickable + button in status-right, remove window list from status bar
+tmux set -g status-right '#[fg=green,bold,range=newwin]  +  #[norange,default] %H:%M %d-%b-%y'
+tmux bind -n MouseDown1StatusRight if-shell -F '#{==:#{mouse_status_range},newwin}' 'new-window'
+tmux set -g window-status-format ''
+tmux set -g window-status-current-format ''
+tmux set -g window-status-separator ''
+
+# Sidebar toggle keybinding
+tmux bind-key b run-shell "$SCRIPTS_DIR/sidebar-toggle.sh"
+
 # Auto-save on structural changes (index [99] to avoid overwriting user hooks)
 for hook in session-created session-closed window-linked window-unlinked client-session-changed; do
     tmux set-hook -g "${hook}[99]" "run-shell -b '$SCRIPTS_DIR/save.sh quiet'"
+done
+
+# Sidebar hooks: ensure sidebar exists in new windows (index [98])
+for hook in after-new-window client-session-changed session-window-changed; do
+    tmux set-hook -g "${hook}[98]" "run-shell -b '$SCRIPTS_DIR/sidebar-ensure.sh'"
 done
 
 # Periodic save every 15 seconds (background loop)
@@ -35,4 +50,9 @@ fi
 # Auto-restore on fresh server start
 if $fresh_start; then
     tmux run-shell -b "'$SCRIPTS_DIR/restore.sh'"
+fi
+
+# Create sidebar in current window (unless disabled or restoring)
+if ! $fresh_start && [ "$(tmux show-option -gqv @tain-sidebar-enabled)" != "0" ]; then
+    tmux run-shell -b "'$SCRIPTS_DIR/sidebar-ensure.sh'"
 fi

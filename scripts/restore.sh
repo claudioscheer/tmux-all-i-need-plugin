@@ -120,4 +120,9 @@ fi
 # Allow saves again
 tmux set-option -gq @tain-restoring 0
 
+# Create sidebar synchronously (so it finishes before any hooks race)
+if [ "$(tmux show-option -gqv @tain-sidebar-enabled)" != "0" ]; then
+    "$CURRENT_DIR/sidebar-ensure.sh"
+fi
+
 display_message "restored (${#restored_sessions[@]} sessions)"
