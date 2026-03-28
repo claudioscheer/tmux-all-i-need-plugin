@@ -16,7 +16,9 @@ if [ "$session_count" -eq 1 ]; then
 fi
 
 # Rename initial session to avoid collision with saved sessions
+original_session=""
 if [ -n "$initial_session" ]; then
+    original_session="$initial_session"
     tmux rename-session -t "=$initial_session" "_tain_temp" 2>/dev/null
     initial_session="_tain_temp"
 fi
@@ -101,19 +103,24 @@ for session in "${restored_sessions[@]}"; do
     fi
 done
 
-# Kill the initial empty session if it wasn't part of our saved state
-if [ -n "$initial_session" ] && [ ${#restored_sessions[@]} -gt 0 ]; then
-    is_restored=false
-    for s in "${restored_sessions[@]}"; do
-        if [ "$s" = "$initial_session" ]; then
-            is_restored=true
-            break
+# Clean up the initial temp session
+if [ -n "$initial_session" ]; then
+    if [ ${#restored_sessions[@]} -gt 0 ]; then
+        # Kill temp session if it wasn't part of restored state
+        is_restored=false
+        for s in "${restored_sessions[@]}"; do
+            if [ "$s" = "$initial_session" ]; then
+                is_restored=true
+                break
+            fi
+        done
+        if ! $is_restored; then
+            tmux switch-client -t "=${restored_sessions[0]}" 2>/dev/null
+            tmux kill-session -t "=$initial_session" 2>/dev/null
         fi
-    done
-    if ! $is_restored; then
-        # Switch client away first, then kill the empty session
-        tmux switch-client -t "=${restored_sessions[0]}" 2>/dev/null
-        tmux kill-session -t "=$initial_session" 2>/dev/null
+    else
+        # No sessions restored — rename temp session back to original name
+        tmux rename-session -t "=$initial_session" "${original_session:-main}" 2>/dev/null
     fi
 fi
 

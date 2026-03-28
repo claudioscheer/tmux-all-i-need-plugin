@@ -21,12 +21,22 @@ if [ -n "$server_start" ] && [ $((now - server_start)) -lt 10 ]; then
     fi
 fi
 
-# Add clickable + button in status-right, remove window list from status bar
-tmux set -g status-right '#[fg=green,bold,range=newwin]  +  #[norange,default] %H:%M %d-%b-%y'
-tmux bind -n MouseDown1StatusRight if-shell -F '#{==:#{mouse_status_range},newwin}' 'new-window'
+# Mouse support (required for sidebar clicks and status bar buttons)
+tmux set -g mouse on
+
+# Clickable status-right: sessions button (≡) and new-window button (+)
+tmux set -g status-right '#[fg=cyan,range=sessions]  ≡  #[norange]#[fg=green,bold,range=newwin]  +  #[norange,default] %H:%M %d-%b-%y'
+tmux bind -n MouseDown1StatusRight if-shell -F '#{==:#{mouse_status_range},sessions}' \
+    'choose-tree -Zs' \
+    'if-shell -F "#{==:#{mouse_status_range},newwin}" "new-window"'
 tmux set -g window-status-format ''
 tmux set -g window-status-current-format ''
 tmux set -g window-status-separator ''
+
+# Handle clicks on sidebar panes (navigate) vs normal panes (default behavior)
+tmux bind -n MouseDown1Pane if-shell -F '#{@tain-sidebar}' \
+    "run-shell '$SCRIPTS_DIR/sidebar-click.sh #{mouse_y} #{pane_top} #{pane_id}'" \
+    "{ select-pane -t = ; send-keys -M }"
 
 # Sidebar toggle keybinding
 tmux bind-key b run-shell "$SCRIPTS_DIR/sidebar-toggle.sh"

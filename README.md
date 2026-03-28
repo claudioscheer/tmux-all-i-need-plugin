@@ -1,11 +1,13 @@
 # tmux-all-i-need
 
-Minimal tmux plugin that auto-saves and restores your sessions, windows, panes, and working directories. No plugin manager required.
+Minimal tmux plugin that auto-saves/restores sessions and adds a clickable sidebar for navigating sessions and windows. No plugin manager required.
 
 ## What it does
 
-- **Saves**: session names, windows, panes, working directories, layouts, active selections
-- **Restores**: recreates the full structure when tmux starts
+- **Auto-save/restore**: sessions, windows, panes, working directories, layouts
+- **Sidebar**: tree view of all sessions and windows, click to navigate
+- **Status bar**: clickable `+` button (new window) and `≡` button (session picker)
+- **Mouse support**: enabled automatically
 - **Does NOT save**: pane content, command history, or running processes
 
 ## Install
@@ -34,12 +36,24 @@ tmux source ~/.tmux.conf
 |-----|--------|
 | `prefix + Ctrl-s` | Manual save |
 | `prefix + R` | Manual restore |
+| `prefix + b` | Toggle sidebar |
+
+## Sidebar
+
+The sidebar shows a tree of all sessions and windows. Click on any entry to switch to it. The current session is highlighted in green, the active window with a `●` marker.
+
+## Status bar
+
+| Button | Action |
+|--------|--------|
+| `≡` | Open session picker (`choose-tree`) |
+| `+` | Create a new window |
 
 ## How it works
 
-- **Auto-save on changes**: Hooks on session/window creation and destruction trigger a save
-- **Periodic save**: Background loop saves every 15 seconds to catch directory changes
-- **Auto-restore**: On fresh tmux server start, automatically restores the last saved state
+- **Auto-save on changes**: hooks on session/window creation and destruction trigger a save
+- **Periodic save**: background loop saves every 15 seconds to catch directory changes
+- **Auto-restore**: on fresh tmux server start, automatically restores the last saved state
 - **State file**: `~/.tmux/tmux-all-i-need/last.txt`
 
 ## Uninstall
