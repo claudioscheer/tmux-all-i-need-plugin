@@ -17,7 +17,7 @@ line=$(sed -n "${row}p" "$targets_file")
 
 ttype="${line%%|*}"
 target="${line#*|}"
-[ -z "$target" ] && exit 0
+[ -z "$ttype" ] && exit 0
 
 case "$ttype" in
     session)
@@ -27,6 +27,9 @@ case "$ttype" in
         sess="${target%%:*}"
         tmux switch-client -t "=$sess" 2>/dev/null
         tmux select-window -t "=$target" 2>/dev/null
+        ;;
+    new-window)
+        tmux new-window 2>/dev/null
         ;;
 esac
 

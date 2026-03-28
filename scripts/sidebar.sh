@@ -61,6 +61,10 @@ render() {
         targets_data+="|"$'\n'
     done <<< "$sessions"
 
+    # New window button
+    output+="${GRN}${BOLD}  +  new window${RST}"$'\n'
+    targets_data+="new-window|"$'\n'
+
     printf '\e[2J\e[H%s' "$output"
     printf '%s' "$targets_data" > "/tmp/tain-targets-${MY_PANE}"
 }
