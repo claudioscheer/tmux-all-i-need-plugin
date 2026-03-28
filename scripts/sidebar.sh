@@ -70,6 +70,23 @@ render() {
 }
 
 while true; do
+    # If main pane was closed, only sidebar remains — handle it
+    my_win=$(tmux display-message -t "$MY_PANE" -p '#{window_id}' 2>/dev/null)
+    non_sidebar=$(tmux list-panes -t "$my_win" -F '#{@tain-sidebar}' 2>/dev/null | grep -cv '^1$')
+    if [ "$non_sidebar" -eq 0 ]; then
+        win_count=$(tmux list-windows -F '#{window_id}' 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$win_count" -gt 1 ]; then
+            # Other windows exist — switch away and kill this empty one
+            tmux select-window -t :+ 2>/dev/null
+            tmux kill-window -t "$my_win" 2>/dev/null
+            exit 0
+        else
+            # Last window — create a new pane beside sidebar
+            tmux split-window -h -t "$MY_PANE" -c "$HOME" 2>/dev/null
+            tmux resize-pane -t "$MY_PANE" -x "$SIDEBAR_WIDTH" 2>/dev/null
+        fi
+    fi
+
     render
     sleep 1
 done
