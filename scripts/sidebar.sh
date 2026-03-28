@@ -30,16 +30,13 @@ render() {
 
     while IFS='|' read -r sname swins; do
         [ -z "$sname" ] && continue
-        # Hide internal temp session used during restore
         [[ "$sname" == _tain_temp* ]] && continue
 
-        # Session line
         local sc="$DIM"
         [ "$sname" = "$cur_sess" ] && sc="${GRN}${BOLD}"
         output+="${sc}▼ ${sname}${RST}"$'\n'
         targets_data+="session|${sname}"$'\n'
 
-        # Windows
         local windows
         windows=$(tmux list-windows -t "=$sname" -F '#{window_index}|#{window_name}|#{window_active}' 2>/dev/null)
 
@@ -61,7 +58,6 @@ render() {
         targets_data+="|"$'\n'
     done <<< "$sessions"
 
-    # New window button
     output+="${GRN}${BOLD}  +  new window${RST}"$'\n'
     targets_data+="new-window|"$'\n'
 
@@ -69,24 +65,8 @@ render() {
     printf '%s' "$targets_data" > "/tmp/tain-targets-${MY_PANE}"
 }
 
+# Render loop — only renders, lifecycle handled by tmux hooks
 while true; do
-    # If main pane was closed, only sidebar remains — handle it
-    my_win=$(tmux display-message -t "$MY_PANE" -p '#{window_id}' 2>/dev/null)
-    non_sidebar=$(tmux list-panes -t "$my_win" -F '#{@tain-sidebar}' 2>/dev/null | grep -cv '^1$')
-    if [ "$non_sidebar" -eq 0 ]; then
-        win_count=$(tmux list-windows -F '#{window_id}' 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$win_count" -gt 1 ]; then
-            # Other windows exist — switch away and kill this empty one
-            tmux select-window -t :+ 2>/dev/null
-            tmux kill-window -t "$my_win" 2>/dev/null
-            exit 0
-        else
-            # Last window — create a new pane beside sidebar
-            tmux split-window -h -t "$MY_PANE" -c "$HOME" 2>/dev/null
-            tmux resize-pane -t "$MY_PANE" -x "$SIDEBAR_WIDTH" 2>/dev/null
-        fi
-    fi
-
     render
     sleep 1
 done

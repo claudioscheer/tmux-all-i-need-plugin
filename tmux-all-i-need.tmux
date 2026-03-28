@@ -51,6 +51,9 @@ for hook in after-new-window client-session-changed session-window-changed; do
     tmux set-hook -g "${hook}[98]" "run-shell -b '$SCRIPTS_DIR/sidebar-ensure.sh'"
 done
 
+# Detect when all non-sidebar panes are closed (index [97])
+tmux set-hook -g "window-layout-changed[97]" "run-shell -b '$SCRIPTS_DIR/handle-empty-window.sh'"
+
 # Periodic save every 15 seconds (background loop)
 if [ "$(tmux show-option -gqv @tain-periodic-running)" != "1" ]; then
     tmux set-option -gq @tain-periodic-running 1
