@@ -56,6 +56,29 @@ The sidebar shows a tree of all sessions and windows. Click on any entry to swit
 - **Auto-restore**: on fresh tmux server start, automatically restores the last saved state
 - **State file**: `~/.tmux/tmux-all-i-need/last.txt`
 
+## State file format
+
+The state file is a tab-separated text file with comment lines starting with `#`. Each non-comment line represents one pane. Sidebar panes are excluded.
+
+```
+session_name \t window_index \t window_name \t window_layout \t pane_index \t pane_current_path \t window_active \t pane_active \t pane_left \t pane_top
+```
+
+| Column | Description |
+|--------|-------------|
+| `session_name` | Name of the tmux session |
+| `window_index` | Window number within the session |
+| `window_name` | Display name of the window |
+| `window_layout` | tmux layout string (stored for reference, not used during restore) |
+| `pane_index` | Pane number within the window |
+| `pane_current_path` | Working directory of the pane |
+| `window_active` | `1` if this is the active window in its session |
+| `pane_active` | `1` if this is the active pane in its window |
+| `pane_left` | X position of the pane (used to detect vertical splits) |
+| `pane_top` | Y position of the pane (used to detect horizontal splits) |
+
+When restoring, split direction is determined by comparing pane positions: if a pane shares the same `pane_top` as the first pane in the window, it was a vertical split (side by side); otherwise it was a horizontal split (stacked).
+
 ## Uninstall
 
 1. Remove the `run-shell` line from `~/.tmux.conf`

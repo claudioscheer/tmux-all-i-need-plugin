@@ -36,7 +36,7 @@ tmux set -g window-status-separator ''
 # Handle clicks on sidebar panes (navigate) vs normal panes (default behavior)
 tmux bind -n MouseDown1Pane if-shell -F '#{@tain-sidebar}' \
     "run-shell '$SCRIPTS_DIR/sidebar-click.sh #{mouse_y} #{pane_top} #{pane_id}'" \
-    "{ select-pane -t = ; send-keys -M }"
+    "select-pane -t ="
 
 # Sidebar toggle keybinding
 tmux bind-key b run-shell "$SCRIPTS_DIR/sidebar-toggle.sh"

@@ -27,7 +27,7 @@ mkdir -p "$STATE_DIR"
 {
     echo "# tmux-all-i-need state file"
     echo "# saved: $(date -Iseconds 2>/dev/null || date)"
-    tmux list-panes -a -f '#{!=:#{@tain-sidebar},1}' -F "#{session_name}${TAB}#{window_index}${TAB}#{window_name}${TAB}#{window_layout}${TAB}#{pane_index}${TAB}#{pane_current_path}${TAB}#{window_active}${TAB}#{pane_active}"
+    tmux list-panes -a -f '#{!=:#{@tain-sidebar},1}' -F "#{session_name}${TAB}#{window_index}${TAB}#{window_name}${TAB}#{window_layout}${TAB}#{pane_index}${TAB}#{pane_current_path}${TAB}#{window_active}${TAB}#{pane_active}${TAB}#{pane_left}${TAB}#{pane_top}"
 } > "$TMP_FILE"
 
 mv "$TMP_FILE" "$STATE_FILE"

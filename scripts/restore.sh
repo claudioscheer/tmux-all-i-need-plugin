@@ -27,14 +27,12 @@ base_index=$(tmux show-option -gv base-index 2>/dev/null || echo 0)
 
 prev_session=""
 prev_window=""
-prev_layout=""
-first_window_of_session=""
 restored_sessions=()
 
 declare -A active_windows
 declare -A active_panes
 
-while IFS=$'\t' read -r session win_idx win_name layout pane_idx pane_path win_active pane_active; do
+while IFS=$'\t' read -r session win_idx win_name layout pane_idx pane_path win_active pane_active pane_left pane_top; do
     # Skip comments and empty lines
     [[ "$session" =~ ^#.*$ || -z "$session" ]] && continue
 
@@ -50,32 +48,30 @@ while IFS=$'\t' read -r session win_idx win_name layout pane_idx pane_path win_a
         continue
     fi
 
-    # Apply layout for previous window before moving on
-    if [ -n "$prev_layout" ] && [ "$prev_window" != "" ] && \
-       { [ "$session" != "$prev_session" ] || [ "$win_idx" != "$prev_window" ]; }; then
-        tmux select-layout -t "=$prev_session:$prev_window" "$prev_layout" 2>/dev/null
-    fi
-
     if [ "$session" != "$prev_session" ]; then
         # New session
         tmux new-session -d -s "$session" -c "$pane_path" -x 200 -y 50 2>/dev/null
         tmux rename-window -t "=$session:$base_index" "$win_name" 2>/dev/null
-        first_window_of_session="$win_idx"
         prev_session="$session"
         prev_window="$win_idx"
+        first_pane_top="$pane_top"
         restored_sessions+=("$session")
 
     elif [ "$win_idx" != "$prev_window" ]; then
         # New window in existing session
         tmux new-window -d -t "=$session:$win_idx" -n "$win_name" -c "$pane_path" 2>/dev/null
         prev_window="$win_idx"
+        first_pane_top="$pane_top"
 
     else
         # Additional pane in current window
-        tmux split-window -t "=$session:$win_idx" -c "$pane_path" 2>/dev/null
+        # Determine split direction from pane positions
+        split_flag=""
+        if [ -n "$pane_top" ] && [ -n "$first_pane_top" ] && [ "$pane_top" = "$first_pane_top" ]; then
+            split_flag="-h"  # Same row = side by side = vertical split
+        fi
+        tmux split-window $split_flag -t "=$session:$win_idx" -c "$pane_path" 2>/dev/null
     fi
-
-    prev_layout="$layout"
 
     # Track active window and pane
     if [ "$win_active" = "1" ]; then
@@ -86,11 +82,6 @@ while IFS=$'\t' read -r session win_idx win_name layout pane_idx pane_path win_a
     fi
 
 done < "$STATE_FILE"
-
-# Apply layout for the very last window
-if [ -n "$prev_layout" ] && [ -n "$prev_window" ]; then
-    tmux select-layout -t "=$prev_session:$prev_window" "$prev_layout" 2>/dev/null
-fi
 
 # Restore active window and pane selections
 for session in "${restored_sessions[@]}"; do
