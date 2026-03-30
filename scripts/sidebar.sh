@@ -12,11 +12,11 @@ FIFO="/tmp/tain-fifo-${MY_PANE}"
 rm -f "$FIFO" 2>/dev/null
 mkfifo "$FIFO" 2>/dev/null
 
-# Use alternate screen buffer to prevent ghost text from scrollback
-printf '\e[?1049h\e[?25l'
+# Hide cursor and clear screen
+printf '\e[?25l\e[2J\e[H'
 
 cleanup() {
-    printf '\e[?25h\e[?1049l'
+    printf '\e[?25h'
     rm -f "/tmp/tain-targets-${MY_PANE}" 2>/dev/null
     rm -f "$FIFO" 2>/dev/null
 }
@@ -93,8 +93,8 @@ render() {
     output+="${GRN}${BOLD}  +  new window${RST}${CLR}"$'\n'
     targets_data+="new-window|"$'\n'
 
-    # Cursor home, draw content, clear any leftover lines below
-    printf '\e[H%s\e[J' "$output"
+    # Clear screen, draw content
+    printf '\e[2J\e[H%s' "$output"
     printf '%s' "$targets_data" > "/tmp/tain-targets-${MY_PANE}"
 }
 
@@ -103,5 +103,7 @@ render
 
 # Block on FIFO — sidebar-refresh.sh writes to trigger re-render
 while read -r < "$FIFO" 2>/dev/null; do
+    # Brief delay to let tmux state settle (e.g., after session kill)
+    sleep 0.05
     render
 done
