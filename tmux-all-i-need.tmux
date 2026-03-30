@@ -28,12 +28,13 @@ tmux set -g mouse on
 tmux set -g automatic-rename on
 tmux set -g automatic-rename-format '#{b:pane_current_path}'
 
-# Status bar: git branch + date/time, no window list (sidebar handles that)
+# Status bar: session name | pane info | git branch | date/time
 tmux set -g status on
 tmux set -g status-style 'bg=default,fg=white'
-tmux set -g status-left ''
-tmux set -g status-right "#[fg=magenta,bold]#($SCRIPTS_DIR/git-branch.sh)  #[fg=white,bg=colour235] %d/%m/%Y %H:%M "
-tmux set -g status-right-length 60
+tmux set -g status-left '#[fg=green,bold] session: [#{session_name}] #[default]'
+tmux set -g status-left-length 30
+tmux set -g status-right "#[fg=cyan]#{pane_current_command} #[fg=magenta,bold]#($SCRIPTS_DIR/git-branch.sh)  #[fg=white,bg=colour235,nobold] %d/%m/%Y %H:%M "
+tmux set -g status-right-length 90
 tmux set -g window-status-format ''
 tmux set -g window-status-current-format ''
 tmux set -g window-status-separator ''
@@ -68,7 +69,7 @@ done
 tmux set-hook -g "window-layout-changed[97]" "run-shell -b '$SCRIPTS_DIR/handle-empty-window.sh'"
 
 # Refresh sidebar display on state changes (index [96])
-for hook in after-new-window client-session-changed session-window-changed session-created session-closed window-linked window-unlinked; do
+for hook in after-new-window client-session-changed session-window-changed session-created session-closed window-linked window-unlinked window-layout-changed; do
     tmux set-hook -g "${hook}[96]" "run-shell -b '$SCRIPTS_DIR/sidebar-refresh.sh'"
 done
 
