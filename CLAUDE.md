@@ -91,6 +91,7 @@ session_name \t window_index \t window_name \t window_layout \t pane_index \t pa
 - Never test via direct tmux commands in the terminal — always edit the scripts
 - State file lives at `~/.tmux/tmux-all-i-need/last.txt`
 - Target map files are in `/tmp/tain-targets-*`
+- **Never add `Co-Authored-By` or any AI attribution to commit messages**
 
 ## Key design principles
 
