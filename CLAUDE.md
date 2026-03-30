@@ -13,14 +13,16 @@ Entry point: `tmux-all-i-need.tmux` — sourced by tmux via `run-shell` in `~/.t
 | Script | Role |
 |--------|------|
 | `helpers.sh` | Shared constants (`STATE_DIR`, `SIDEBAR_WIDTH`, `TAB`) and `display_message()` |
-| `sidebar.sh` | Runs in the sidebar pane. One-shot render of session/window tree with ANSI colors, then blocks with `tail -f /dev/null`. Writes click target map to `/tmp/tain-targets-{PANE_ID}`. Refreshed via `respawn-pane` from hooks. |
-| `sidebar-ensure.sh` | Creates sidebar pane in current window if one doesn't exist. Uses `tmux wait-for` lock to prevent races. Tags pane with `@tain-sidebar=1`, restores focus with `last-pane`. |
+| `sidebar.sh` | Runs in the sidebar pane. One-shot render of session/window tree with ANSI colors, then blocks on a named FIFO. Shows per-window indicators: git dirty (`*`), pane count (`[N]`), zoom (`Z`). Writes click target map to `/tmp/tain-targets-{PANE_ID}`. Re-renders when signaled via FIFO. |
+| `sidebar-ensure.sh` | Creates sidebar pane in current window if one doesn't exist. Uses `tmux wait-for` lock to prevent races. Tags pane with `@tain-sidebar=1`, enforces width with `resize-pane`, restores focus with `last-pane`. |
 | `sidebar-toggle.sh` | Toggles `@tain-sidebar-enabled` flag, kills or creates sidebar panes globally. |
-| `sidebar-click.sh` | Called by `MouseDown1Pane` binding. Reads target map file, navigates to clicked session/window, returns focus to main pane. |
-| `sidebar-refresh.sh` | Respawns the current window's sidebar pane via `respawn-pane -k`, triggering a fresh render. Called by tmux hooks on state changes. |
+| `sidebar-click.sh` | Called by `MouseDown1Pane` binding. Reads target map file, navigates to clicked session/window. Handles `new-window` action. Restores focus to main pane in the navigated-to window (not the old window). |
+| `sidebar-refresh.sh` | Writes to the sidebar pane's FIFO to trigger a re-render without destroying the pane. Called by tmux hooks on state changes. |
 | `handle-empty-window.sh` | `window-layout-changed` hook handler. When only sidebar panes remain: switches to next window (killing empty one) or creates a new pane if last window. |
-| `save.sh` | Captures all non-sidebar pane state to `~/.tmux/tmux-all-i-need/last.txt`. Throttled (2s min between hook saves). Runs periodically (15s) and on structural hooks. |
-| `restore.sh` | Recreates sessions/windows/panes from state file on fresh server start. Uses `pane_left`/`pane_top` to detect vertical vs horizontal splits. Renames initial session to `_tain_temp` during restore, cleans up after. |
+| `save.sh` | Captures all non-sidebar pane state to `~/.tmux/tmux-all-i-need/last.txt`. Throttled (2s min between hook saves). Runs periodically (15s) and on structural hooks. Uses atomic writes (tmp + `mv`). |
+| `restore.sh` | Recreates sessions/windows/panes from state file on fresh server start. Uses `pane_left`/`pane_top` to detect vertical vs horizontal splits. Renames initial session to `_tain_temp` during restore, cleans up after. Re-enables `automatic-rename` on restored windows. |
+| `git-branch.sh` | Resolves git branch from the active (non-sidebar) pane's working directory. Used by status-right via `#()`. |
+| `watch-paths.sh` | Polls pane paths every 3 seconds. Triggers sidebar refresh only when a path actually changes. |
 
 ### Hook priority
 
@@ -42,14 +44,15 @@ Hooks use index suffixes to avoid colliding with user hooks:
 
 ### Sidebar rendering
 
-Inspired by tmux-sidebar: **no loop, event-driven**.
+Inspired by tmux-sidebar: **no loop, event-driven, flash-free**.
 
-1. `sidebar.sh` renders once (one-shot), writes target map, then blocks with `tail -f /dev/null`
+1. `sidebar.sh` renders once (one-shot), writes target map, then blocks reading from a named FIFO (`/tmp/tain-fifo-{PANE_ID}`)
 2. tmux hooks (session/window changes) call `sidebar-refresh.sh`
-3. `sidebar-refresh.sh` runs `respawn-pane -k` on the sidebar pane, killing `tail` and starting a fresh `sidebar.sh`
-4. The new `sidebar.sh` renders the updated state immediately
+3. `sidebar-refresh.sh` writes to the FIFO, unblocking `sidebar.sh`
+4. `sidebar.sh` re-renders in-place (clear screen + redraw) — no pane destruction, no flash
+5. `watch-paths.sh` polls pane paths every 3 seconds and triggers a refresh when directories change
 
-This eliminates polling delays — the sidebar updates the instant tmux state changes.
+Each output line uses `\e[K` (clear to end of line) to prevent stale text artifacts. A 50ms debounce before re-render lets tmux state settle after destructive operations like session kill.
 
 ### State file format
 
@@ -73,10 +76,14 @@ session_name \t window_index \t window_name \t window_layout \t pane_index \t pa
 - All scripts source `helpers.sh` for shared constants
 - `2>/dev/null` on all tmux commands (defensive)
 - `tmux wait-for -L/-U` for exclusive locking where races are possible
-- Sidebar pane created with `split-window -hbf` (horizontal, before, full-height)
-- Focus always restored to main pane via `last-pane` or explicit `select-pane`
+- Sidebar pane created with `split-window -hbf` (horizontal, before, full-height), width enforced with `resize-pane`
+- Focus always restored to main pane via `last-pane` (sidebar creation) or explicit `select-pane` (click navigation to navigated-to window)
 - Pane input disabled with `select-pane -d` on sidebar panes
-- Pane options (like `@tain-sidebar`) persist across `respawn-pane` — don't unset them in sidebar.sh cleanup
+- Sidebar process `cd /` on startup to prevent affecting `automatic-rename`
+- `automatic-rename` set globally to `#{b:pane_current_path}` — windows show directory names
+- Status bar hides the window list (`window-status-format` set to empty) — sidebar handles navigation
+- Status bar right segment uses `#()` shell command for git branch (via `git-branch.sh`)
+- Named FIFOs (`/tmp/tain-fifo-{PANE_ID}`) used for sidebar communication — cleaned up on exit via trap
 
 ## Development workflow
 
@@ -85,11 +92,22 @@ session_name \t window_index \t window_name \t window_layout \t pane_index \t pa
 - State file lives at `~/.tmux/tmux-all-i-need/last.txt`
 - Target map files are in `/tmp/tain-targets-*`
 
-## Key design principles (from tmux-sidebar reference)
+## Key design principles
 
-- **One-shot render, not a loop** — render once, block, use `respawn-pane` to refresh
-- **Event-driven updates** — tmux hooks trigger re-renders, no polling
+- **One-shot render, FIFO-driven refresh** — render once, block on FIFO, re-render in-place when signaled (no pane destruction)
+- **Event-driven updates** — tmux hooks trigger instant re-renders, no polling for state changes
+- **Path polling as supplement** — `watch-paths.sh` catches directory changes that don't trigger hooks (every 3s, only refreshes when changed)
 - **Lifecycle managed by hooks** — sidebar process only renders; creation, destruction, and empty-window handling are separate hook scripts
-- **Focus restoration** via `tmux last-pane` after any sidebar operation
+- **Focus restoration** — `last-pane` after sidebar creation; explicit `select-pane` to main pane in navigated-to window after click navigation
 - **tmux options as key-value store** for all runtime state (no external databases)
 - **Atomic file writes** (write to tmp, then `mv`)
+
+## Known issues resolved
+
+These issues have been fixed and are documented here for context:
+
+- **Sidebar ghost text** — old text lingered after re-render. Fixed by using `\e[2J\e[H` (full screen clear) and `\e[K` (clear to EOL) on each line.
+- **Stale content after session kill** — sidebar showed deleted sessions. Fixed by adding 50ms debounce before re-render to let tmux state settle.
+- **Focus lost on session switch** — clicking a session/window left focus in the sidebar. Fixed by resolving the main pane in the navigated-to window (not the old window) and selecting it explicitly.
+- **Sidebar width drift** — `split-window -l` didn't always honor the width. Fixed by enforcing exact width with `resize-pane` after creation.
+- **Flash on refresh** — original design used `respawn-pane -k` which destroyed and recreated the pane. Replaced with FIFO-based signaling for in-place re-render.
