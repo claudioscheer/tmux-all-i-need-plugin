@@ -55,6 +55,11 @@ tmux bind -n WheelDownPane if-shell -F '#{@tain-sidebar}' \
 # Sidebar toggle keybinding
 tmux bind-key b run-shell "$SCRIPTS_DIR/sidebar-toggle.sh"
 
+# New windows/panes inherit the current pane's working directory
+tmux bind-key c new-window -c "#{pane_current_path}"
+tmux bind-key '"' split-window -c "#{pane_current_path}"
+tmux bind-key '%' split-window -h -c "#{pane_current_path}"
+
 # Auto-save on structural changes (index [99] to avoid overwriting user hooks)
 for hook in session-created session-closed window-linked window-unlinked client-session-changed; do
     tmux set-hook -g "${hook}[99]" "run-shell -b '$SCRIPTS_DIR/save.sh quiet'"
