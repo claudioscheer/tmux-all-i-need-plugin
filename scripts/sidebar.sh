@@ -37,7 +37,7 @@ render() {
         targets_data+="session|${sname}"$'\n'
 
         local windows
-        windows=$(tmux list-windows -t "=$sname" -F '#{window_index}|#{window_name}|#{window_active}' 2>/dev/null)
+        windows=$(tmux list-windows -t "=$sname" -F '#{window_index}|#{b:pane_current_path}|#{window_active}' 2>/dev/null)
 
         while IFS='|' read -r widx wname wactive; do
             [ -z "$widx" ] && continue

@@ -115,6 +115,13 @@ if [ -n "$initial_session" ]; then
     fi
 fi
 
+# Re-enable automatic-rename on restored windows (rename-window/-n disables it)
+for session in "${restored_sessions[@]}"; do
+    tmux list-windows -t "=$session" -F '#{window_index}' 2>/dev/null | while read -r win_id; do
+        tmux set-option -wt "=$session:$win_id" automatic-rename on 2>/dev/null
+    done
+done
+
 # Allow saves again
 tmux set-option -gq @tain-restoring 0
 

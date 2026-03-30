@@ -24,6 +24,10 @@ fi
 # Mouse support (required for sidebar clicks and status bar buttons)
 tmux set -g mouse on
 
+# Auto-rename windows to current directory name
+tmux set -g automatic-rename on
+tmux set -g automatic-rename-format '#{b:pane_current_path}'
+
 # Status bar: git branch + date/time, no window list (sidebar handles that)
 tmux set -g status on
 tmux set -g status-style 'bg=default,fg=white'
@@ -68,10 +72,11 @@ for hook in after-new-window client-session-changed session-window-changed sessi
     tmux set-hook -g "${hook}[96]" "run-shell -b '$SCRIPTS_DIR/sidebar-refresh.sh'"
 done
 
-# Periodic save every 15 seconds (background loop)
+# Periodic save every 15 seconds + watch for path changes every 3 seconds
 if [ "$(tmux show-option -gqv @tain-periodic-running)" != "1" ]; then
     tmux set-option -gq @tain-periodic-running 1
     tmux run-shell -b "while tmux info >/dev/null 2>&1; do '$SCRIPTS_DIR/save.sh' periodic; sleep 15; done"
+    tmux run-shell -b "'$SCRIPTS_DIR/watch-paths.sh'"
 fi
 
 # Auto-restore on fresh server start
