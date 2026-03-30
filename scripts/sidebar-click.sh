@@ -19,23 +19,25 @@ ttype="${line%%|*}"
 target="${line#*|}"
 [ -z "$ttype" ] && exit 0
 
+nav_target=""
 case "$ttype" in
     session)
         tmux switch-client -t "=$target" 2>/dev/null
+        nav_target="$target:"
         ;;
     window)
         sess="${target%%:*}"
         tmux switch-client -t "=$sess" 2>/dev/null
         tmux select-window -t "=$target" 2>/dev/null
+        nav_target="$target"
         ;;
     new-window)
         tmux new-window -a -t :{end} 2>/dev/null
         ;;
 esac
 
-# Return focus from sidebar to main pane in sidebar's window
-sidebar_win=$(tmux display-message -t "$sidebar_pane" -p '#{session_name}:#{window_index}' 2>/dev/null)
-if [ -n "$sidebar_win" ]; then
-    main_pane=$(tmux list-panes -t "$sidebar_win" -F '#{pane_id} #{@tain-sidebar}' 2>/dev/null | awk '$2 != "1" {print $1; exit}')
+# Return focus to main pane in the navigated-to window (not the old sidebar's window)
+if [ -n "$nav_target" ]; then
+    main_pane=$(tmux list-panes -t "$nav_target" -F '#{pane_id} #{@tain-sidebar}' 2>/dev/null | awk '$2 != "1" {print $1; exit}')
     [ -n "$main_pane" ] && tmux select-pane -t "$main_pane" 2>/dev/null
 fi

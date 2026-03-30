@@ -33,5 +33,7 @@ mkdir -p "$STATE_DIR"
 mv "$TMP_FILE" "$STATE_FILE"
 
 if [ "$MODE" != "quiet" ] && [ "$MODE" != "periodic" ]; then
-    display_message "saved"
+    sess_count=$(tmux list-sessions 2>/dev/null | wc -l | tr -d ' ')
+    win_count=$(tmux list-windows -a 2>/dev/null | wc -l | tr -d ' ')
+    display_message "saved ${sess_count} sessions, ${win_count} windows"
 fi

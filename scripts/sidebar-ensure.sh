@@ -28,6 +28,8 @@ if [ -n "$pane_id" ]; then
     tmux set-option -p -t "$pane_id" @tain-sidebar 1 2>/dev/null
     tmux select-pane -d -t "$pane_id" 2>/dev/null
     tmux select-pane -T "sidebar" -t "$pane_id" 2>/dev/null
+    # Enforce exact width in case split didn't honor -l
+    tmux resize-pane -t "$pane_id" -x "$SIDEBAR_WIDTH" 2>/dev/null
 fi
 
 # Return focus to user's pane

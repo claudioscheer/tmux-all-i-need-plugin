@@ -12,7 +12,11 @@ FIFO="/tmp/tain-fifo-${MY_PANE}"
 rm -f "$FIFO" 2>/dev/null
 mkfifo "$FIFO" 2>/dev/null
 
+# Use alternate screen buffer to prevent ghost text from scrollback
+printf '\e[?1049h\e[?25l'
+
 cleanup() {
+    printf '\e[?25h\e[?1049l'
     rm -f "/tmp/tain-targets-${MY_PANE}" 2>/dev/null
     rm -f "$FIFO" 2>/dev/null
 }
