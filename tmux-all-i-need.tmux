@@ -24,14 +24,8 @@ fi
 # Mouse support (required for sidebar clicks and status bar buttons)
 tmux set -g mouse on
 
-# Clickable status-right: sessions button (≡) and new-window button (+)
-tmux set -g status-right '#[fg=cyan,range=sessions]  ≡  #[norange]#[fg=green,bold,range=newwin]  +  #[norange,default] %H:%M %d-%b-%y'
-tmux bind -n MouseDown1StatusRight if-shell -F '#{==:#{mouse_status_range},sessions}' \
-    'choose-tree -Zs' \
-    'if-shell -F "#{==:#{mouse_status_range},newwin}" "new-window -a -t :{end}"'
-tmux set -g window-status-format ''
-tmux set -g window-status-current-format ''
-tmux set -g window-status-separator ''
+# Hide the status bar (sidebar replaces it)
+tmux set -g status off
 
 # Handle clicks on sidebar panes (navigate) vs normal panes (default behavior)
 tmux bind -n MouseDown1Pane if-shell -F '#{@tain-sidebar}' \
