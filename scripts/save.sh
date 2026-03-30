@@ -35,5 +35,5 @@ mv "$TMP_FILE" "$STATE_FILE"
 if [ "$MODE" != "quiet" ] && [ "$MODE" != "periodic" ]; then
     sess_count=$(tmux list-sessions 2>/dev/null | wc -l | tr -d ' ')
     win_count=$(tmux list-windows -a 2>/dev/null | wc -l | tr -d ' ')
-    display_message "saved ${sess_count} sessions, ${win_count} windows"
+    tmux display-message -d 3000 "tmux-all-i-need: saved ${sess_count} sessions, ${win_count} windows"
 fi

@@ -8,5 +8,5 @@ TAB=$'\t'
 SIDEBAR_WIDTH=30
 
 display_message() {
-    tmux display-message -d 3000 "tmux-all-i-need: $1"
+    tmux display-message "tmux-all-i-need: $1"
 }
