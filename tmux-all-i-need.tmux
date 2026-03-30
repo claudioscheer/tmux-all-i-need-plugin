@@ -24,13 +24,28 @@ fi
 # Mouse support (required for sidebar clicks and status bar buttons)
 tmux set -g mouse on
 
-# Hide the status bar (sidebar replaces it)
-tmux set -g status off
+# Status bar: git branch + date/time, no window list (sidebar handles that)
+tmux set -g status on
+tmux set -g status-style 'bg=default,fg=white'
+tmux set -g status-left ''
+tmux set -g status-right "#[fg=magenta,bold]#($SCRIPTS_DIR/git-branch.sh)  #[fg=white,bg=colour235] %d/%m/%Y %H:%M "
+tmux set -g status-right-length 60
+tmux set -g window-status-format ''
+tmux set -g window-status-current-format ''
+tmux set -g window-status-separator ''
 
 # Handle clicks on sidebar panes (navigate) vs normal panes (default behavior)
 tmux bind -n MouseDown1Pane if-shell -F '#{@tain-sidebar}' \
     "run-shell '$SCRIPTS_DIR/sidebar-click.sh #{mouse_y} #{pane_top} #{pane_id}'" \
     "select-pane -t ="
+
+# Prevent scroll/copy-mode on sidebar panes, preserve default on normal panes
+tmux bind -n WheelUpPane if-shell -F '#{@tain-sidebar}' \
+    'display ""' \
+    'if-shell -Ft= "#{||:#{pane_in_mode},#{mouse_any_flag}}" "send -Mt=" "copy-mode -et="'
+tmux bind -n WheelDownPane if-shell -F '#{@tain-sidebar}' \
+    'display ""' \
+    'send -Mt='
 
 # Sidebar toggle keybinding
 tmux bind-key b run-shell "$SCRIPTS_DIR/sidebar-toggle.sh"
