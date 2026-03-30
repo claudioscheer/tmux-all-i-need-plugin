@@ -30,10 +30,10 @@ tmux set -g automatic-rename-format '#{b:pane_current_path}'
 
 # Status bar: session name | pane info | git branch | date/time
 tmux set -g status on
-tmux set -g status-style 'bg=default,fg=white'
-tmux set -g status-left '#[fg=green,bold] session: [#{session_name}] #[default]'
+tmux set -g status-style 'bg=colour236,fg=colour248'
+tmux set -g status-left '#[fg=colour16,bg=colour114,bold]  #{session_name} #[fg=colour114,bg=colour236,nobold] '
 tmux set -g status-left-length 30
-tmux set -g status-right "#[fg=cyan]#{pane_current_command} #[fg=magenta,bold]#($SCRIPTS_DIR/git-branch.sh)  #[fg=white,bg=colour235,nobold] %d/%m/%Y %H:%M "
+tmux set -g status-right "#[fg=colour245,bg=colour236]#{pane_current_command} #[fg=colour236,bg=colour239] #[fg=colour176,bg=colour239,bold]#($SCRIPTS_DIR/git-branch.sh) #[fg=colour239,bg=colour243] #[fg=colour16,bg=colour243,bold] %d/%m  %H:%M "
 tmux set -g status-right-length 90
 tmux set -g window-status-format ''
 tmux set -g window-status-current-format ''
